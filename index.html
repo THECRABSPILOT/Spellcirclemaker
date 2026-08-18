@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Layered Arcane Spell Circle Generator</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #080810;
+      color: #e0e0ff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    #mobileToggle {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      background: #6d28d9;
+      color: white;
+      border: none;
+      padding: 12px 22px;
+      border-radius: 30px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(109, 40, 217, 0.5);
+      font-size: 0.9rem;
+      letter-spacing: 0.5px;
+    }
+
+    #drawerHandle {
+      display: none;
+      width: 42px;
+      height: 5px;
+      background: #4a4a7a;
+      border-radius: 3px;
+      margin: 0 auto 12px;
+      flex-shrink: 0;
+    }
+
+    #sidebar {
+      width: 380px;
+      min-width: 320px;
+      background: #10101f;
+      border-right: 1px solid #2a2a4a;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+      z-index: 10;
+      overflow-y: auto;
+      transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    
+    h2 {
+      color: #9d8ec7;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-size: 1rem;
+      border-bottom: 1px solid #2a2a4a;
+      padding-bottom: 6px;
+    }
+    .layer-tabs-container {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      background: #0d0d18;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #22223d;
+    }
+    .layer-tabs {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+    .layer-tab {
+      background: #18182e;
+      border: 1px solid #3a3a6a;
+      color: #aaaacc;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .layer-tab.active {
+      background: #6d28d9;
+      color: #fff;
+      border-color: #8b5cf6;
+      font-weight: bold;
+    }
+    .tab-actions {
+      display: flex;
+      gap: 6px;
+    }
+    .btn-small {
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      background: #252542;
+      border: 1px solid #3a3a6a;
+      color: #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .btn-small:hover {
+      background: #3b3b66;
+      color: white;
+    }
+    .btn-danger {
+      background: #881337;
+      border-color: #9f1239;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .section-header {
+      font-size: 0.75rem;
+      color: #8b5cf6;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 4px;
+      border-bottom: 1px dashed #2a2a4a;
+      padding-bottom: 2px;
+    }
+    label {
+      font-size: 0.7rem;
+      color: #aaaacc;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      display: flex;
+      justify-content: space-between;
+    }
+    label span {
+      color: #8b5cf6;
+      font-weight: bold;
+    }
+    input[type="text"], select {
+      background: #18182e;
+      border: 1px solid #3a3a6a;
+      color: #fff;
+      padding: 6px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      outline: none;
+    }
+    input[type="range"] {
+      accent-color: #8b5cf6;
+      cursor: pointer;
+    }
+    .symbol-picker-container {
+      background: #0d0d18;
+      border: 1px solid #22223d;
+      border-radius: 6px;
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .symbol-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      max-height: 90px;
+      overflow-y: auto;
+      background: #141428;
+      padding: 4px;
+      border-radius: 4px;
+      border: 1px solid #2a2a4a;
+    }
+    .symbol-btn {
+      background: #1c1c38;
+      border: 1px solid #34345c;
+      color: #d1d1f5;
+      padding: 3px;
+      font-size: 0.9rem;
+      border-radius: 3px;
+      cursor: pointer;
+      text-align: center;
+    }
+    .color-pickers {
+      display: flex;
+      gap: 8px;
+    }
+    .color-pickers div {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    input[type="color"] {
+      background: none;
+      border: none;
+      width: 100%;
+      height: 28px;
+      cursor: pointer;
+    }
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    button.main-btn {
+      background: linear-gradient(135deg, #6d28d9, #4c1d95);
+      color: white;
+      border: none;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    button.save-btn {
+      background: linear-gradient(135deg, #059669, #047857);
+    }
+    #canvas-container {
+      flex-grow: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      background: radial-gradient(circle at center, #121124 0%, #05050a 100%);
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    canvas {
+      max-width: 95%;
+      max-height: 95%;
+      object-fit: contain;
+      touch-action: none;
+    }
+
+    @media (max-width: 768px) {
+      #mobileToggle {
+        display: block;
+        bottom: max(20px, env(safe-area-inset-bottom, 20px));
+      }
+      #drawerHandle {
+        display: block;
+      }
+      #sidebar {
+        position: fixed;
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+        height: 70vh;
+        max-height: 78vh;
+        transform: translateY(100%);
+        border-right: none;
+        border-top: 1px solid #3a3a6a;
+        border-radius: 20px 20px 0 0;
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.65);
+        padding-top: 10px;
+        padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
+        z-index: 50;
+      }
+      #sidebar.open {
+        transform: translateY(0);
+      }
+      #mobileToggle.open-state {
+        bottom: calc(70vh + 14px);
+        background: #881337;
+      }
+      /* Keep canvas fully visible above the drawer */
+      #canvas-container {
+        padding-bottom: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <button id="mobileToggle">☰ Controls</button>
+
+  <div id="sidebar">
+    <div id="drawerHandle"></div>
+    <h2>Spell Weaver</h2>
+    
+    <div class="layer-tabs-container">
+      <label>Spell Layers</label>
+      <div class="layer-tabs" id="layerTabs"></div>
+      <div class="tab-actions">
+        <button class="btn-small" id="addLayerBtn">+ Add Layer</button>
+        <button class="btn-small btn-danger" id="removeLayerBtn">- Delete Layer</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label for="inputs">Layer Components (Comma Separated)</label>
+      <input type="text" id="inputs">
+    </div>
+
+    <div class="symbol-picker-container">
+      <label>Wingdings & Symbol Matrix</label>
+      <div class="symbol-grid" id="symbolGrid"></div>
+    </div>
+
+    <div class="control-group">
+      <label for="shapeMode">Geometry Mode</label>
+      <select id="shapeMode">
+        <option value="star">Star / Pentagrams</option>
+        <option value="polygon">Regular Polygon</option>
+        <option value="orbitRings">Orbital Circle Nodes</option>
+        <option value="both">Star + Polygon Hybrid</option>
+        <option value="none">Rings & Text Only</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label for="layerRadius">Scale / Radius <span id="layerRadiusVal">350</span></label>
+      <input type="range" id="layerRadius" min="50" max="450" value="350">
+    </div>
+
+    <div class="control-group">
+      <label for="starPoints">Sides / Points <span id="starPointsVal">6</span></label>
+      <input type="range" id="starPoints" min="3" max="16" value="6">
+    </div>
+
+    <div class="control-group">
+      <label for="ringCount">Concentric Inner Rings <span id="ringCountVal">2</span></label>
+      <input type="range" id="ringCount" min="0" max="8" value="2">
+    </div>
+
+    <div class="control-group">
+      <label for="extraCircles">Orbit Node Circles <span id="extraCirclesVal">0</span></label>
+      <input type="range" id="extraCircles" min="0" max="12" value="0">
+    </div>
+
+    <div class="section-header">Independent Angle Controls</div>
+
+    <div class="control-group">
+      <label for="glyphAngle">1. Text/Glyph Ring Angle <span id="glyphAngleVal">0°</span></label>
+      <input type="range" id="glyphAngle" min="0" max="360" value="0">
+    </div>
+
+    <div class="control-group">
+      <label for="geoAngle">2. Central Geometry Angle <span id="geoAngleVal">0°</span></label>
+      <input type="range" id="geoAngle" min="0" max="360" value="0">
+    </div>
+
+    <div class="control-group">
+      <label for="orbitAngle">3. Orbit Nodes Angle <span id="orbitAngleVal">0°</span></label>
+      <input type="range" id="orbitAngle" min="0" max="360" value="0">
+    </div>
+
+    <div class="color-pickers">
+      <div>
+        <label for="colorPrimary">Core Color</label>
+        <input type="color" id="colorPrimary" value="#a855f7">
+      </div>
+      <div>
+        <label for="colorSecondary">Glow Color</label>
+        <input type="color" id="colorSecondary" value="#3b82f6">
+      </div>
+    </div>
+
+    <div class="btn-group">
+      <button id="randomizeBtn" class="main-btn">Randomize Layer</button>
+      <button id="saveBtn" class="main-btn save-btn">Save PNG</button>
+    </div>
+  </div>
+
+  <div id="canvas-container">
+    <canvas id="circleCanvas" width="1000" height="1000"></canvas>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('circleCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const wingdingsSymbols = [
+      '🜁', '🜂', '🜄', '🜃', '🝔', '🕇', '🕈', '🕆', '🝓', '🝕', '🝖', '🝗', 
+      '🔯', '☸', '☯', '⚛', '⚜', '⚡', '🔥', '💧', '✨', '🌙', '☀️', '💀', 
+      '👁️', '✦', '✧', '★', '☆', '✵', '✶', '✷', '✸', '✹', '✺', '🜀', 
+      '🜅', '🜆', '🜇', '🜈', '🜉', '🜊', '🜋', '🜌', '🜍', '🜎', '🜏', '🜐',
+      '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓'
+    ];
+
+    const emojiGlyphs = {
+      '🔥': 'M12,2C11.5,4 10,6 8,8C5,11 5,14.5 7,17.5C8.5,19.8 11.2,21 14,20.5C17.5,19.8 20,16.5 20,13C20,8.5 15,6.5 14,2C14,2 13.2,4.8 11.5,5.8C12.8,8.2 14.5,9.5 14,12C13.5,14.5 11,15.5 9.5,14C8,12.5 8.5,10.5 10.5,9.5C10,7 11.5,4 12,2Z',
+      '⚡': 'M11,21L13,12H7L13,3H11L5,14H11L9,21H11Z',
+      '✨': 'M12,2L14.5,9.5L22,12L14.5,14.5L12,22L9.5,14.5L2,12L9.5,9.5L12,2Z',
+      '💀': 'M12,2C7.58,2 4,5.58 4,10C4,12.8 5.43,15.26 7.62,16.71V19A1,1 0 0,0 8.62,20H10V18H11V20H13V18H14V20H15.38A1,1 0 0,0 16.38,19V16.71C18.57,15.26 20,12.8 20,10C20,5.58 16.42,2 12,2M9,9A1.5,1.5 0 0,1 10.5,10.5A1.5,1.5 0 0,1 9,12A1.5,1.5 0 0,1 7.5,10.5A1.5,1.5 0 0,1 9,9M15,9A1.5,1.5 0 0,1 16.5,10.5A1.5,1.5 0 0,1 15,12A1.5,1.5 0 0,1 13.5,10.5A1.5,1.5 0 0,1 15,9Z',
+      '🌙': 'M12.3,2A10,10 0 0,0 22,12.7A10,10 0 0,1 11.3,2A10,10 0 0,0 12.3,2Z',
+      '☀️': 'M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,2A1,1 0 0,1 13,3V5A1,1 0 0,1 12,6A1,1 0 0,1 11,5V3A1,1 0 0,1 12,2M12,18A1,1 0 0,1 13,19V21A1,1 0 0,1 12,22A1,1 0 0,1 11,21V19A1,1 0 0,1 12,18M4.93,4.93A1,1 0 0,1 6.34,4.93L7.76,6.34A1,1 0 0,1 6.34,7.76L4.93,6.34A1,1 0 0,1 4.93,4.93M16.24,16.24A1,1 0 0,1 17.66,16.24L19.07,17.66A1,1 0 0,1 17.66,19.07L16.24,17.66A1,1 0 0,1 16.24,16.24M2,12A1,1 0 0,1 3,11H5A1,1 0 0,1 6,12A1,1 0 0,1 5,13H3A1,1 0 0,1 2,12M18,12A1,1 0 0,1 19,11H21A1,1 0 0,1 22,12A1,1 0 0,1 21,13H19A1,1 0 0,1 18,12M4.93,19.07A1,1 0 0,1 4.93,17.66L6.34,16.24A1,1 0 0,1 7.76,17.66L6.34,19.07A1,1 0 0,1 4.93,19.07M16.24,7.76A1,1 0 0,1 16.24,6.34L17.66,4.93A1,1 0 0,1 19.07,6.34L17.66,7.76A1,1 0 0,1 16.24,7.76Z',
+      '💧': 'M12,2C12,2 6,10 6,14A6,6 0 0,0 12,20A6,6 0 0,0 18,14C18,10 12,2 12,2Z',
+      '👁️': 'M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9Z'
+    };
+
+    function renderSolidGlyph(targetCtx, pathData, color, size) {
+      const p = new Path2D(pathData);
+      targetCtx.save();
+      targetCtx.fillStyle = color;
+      targetCtx.scale(size / 24, size / 24);
+      targetCtx.translate(-12, -12);
+      targetCtx.fill(p);
+      targetCtx.restore();
+    }
+
+    function createDefaultLayer(name, radius, mode, points, primary, secondary, gAngle, geoAngle, oAngle, text) {
+      return {
+        name: name,
+        radius: radius,
+        shapeMode: mode,
+        starPoints: points,
+        ringCount: 2,
+        extraCircles: 0,
+        glyphAngle: gAngle,
+        geoAngle: geoAngle,
+        orbitAngle: oAngle,
+        colorPrimary: primary,
+        colorSecondary: secondary,
+        inputs: text
+      };
+    }
+
+    let layers = [
+      createDefaultLayer("Outer Ring", 420, "orbitRings", 8, "#3b82f6", "#1d4ed8", 0, 45, 0, "Aether, ⚡, Cosmos, 💧, Void, ✨, Astral, Zenith"),
+      createDefaultLayer("Main Sigil", 320, "star", 6, "#a855f7", "#3b82f6", 15, 0, 30, "Fire, 🔥, Ignis, 🕇, Pyros, 💀, Inferno, Burn, 🌙"),
+      createDefaultLayer("Inner Core", 160, "polygon", 3, "#ec4899", "#8b5cf6", 0, 180, 0, "Lux, 👁️, Vitae, ☀️, Spirit")
+    ];
+
+    let activeLayerIndex = 1;
+
+    const sidebar = document.getElementById('sidebar');
+    const mobileToggle = document.getElementById('mobileToggle');
+    const layerTabs = document.getElementById('layerTabs');
+    const addLayerBtn = document.getElementById('addLayerBtn');
+    const removeLayerBtn = document.getElementById('removeLayerBtn');
+    const symbolGrid = document.getElementById('symbolGrid');
+
+    const inputsText = document.getElementById('inputs');
+    const shapeModeInput = document.getElementById('shapeMode');
+    const layerRadiusInput = document.getElementById('layerRadius');
+    const ringCountInput = document.getElementById('ringCount');
+    const starPointsInput = document.getElementById('starPoints');
+    const extraCirclesInput = document.getElementById('extraCircles');
+
+    const glyphAngleInput = document.getElementById('glyphAngle');
+    const geoAngleInput = document.getElementById('geoAngle');
+    const orbitAngleInput = document.getElementById('orbitAngle');
+
+    const colorPrimaryInput = document.getElementById('colorPrimary');
+    const colorSecondaryInput = document.getElementById('colorSecondary');
+    const randomizeBtn = document.getElementById('randomizeBtn');
+    const saveBtn = document.getElementById('saveBtn');
+
+    const layerRadiusVal = document.getElementById('layerRadiusVal');
+    const starPointsVal = document.getElementById('starPointsVal');
+    const ringCountVal = document.getElementById('ringCountVal');
+    const extraCirclesVal = document.getElementById('extraCirclesVal');
+    const glyphAngleVal = document.getElementById('glyphAngleVal');
+    const geoAngleVal = document.getElementById('geoAngleVal');
+    const orbitAngleVal = document.getElementById('orbitAngleVal');
+
+    mobileToggle.addEventListener('click', () => {
+      const isOpen = sidebar.classList.toggle('open');
+      mobileToggle.classList.toggle('open-state', isOpen);
+      mobileToggle.textContent = isOpen ? '✕ Close' : '☰ Controls';
+    });
+
+    function initSymbolGrid() {
+      symbolGrid.innerHTML = '';
+      wingdingsSymbols.forEach(sym => {
+        const btn = document.createElement('button');
+        btn.className = 'symbol-btn';
+        btn.textContent = sym;
+        btn.addEventListener('click', () => {
+          inputsText.value += inputsText.value.trim().length > 0 ? `, ${sym}` : sym;
+          layers[activeLayerIndex].inputs = inputsText.value;
+          renderAll();
+        });
+        symbolGrid.appendChild(btn);
+      });
+    }
+
+    function renderTabs() {
+      layerTabs.innerHTML = '';
+      layers.forEach((layer, idx) => {
+        const tab = document.createElement('div');
+        tab.className = `layer-tab ${idx === activeLayerIndex ? 'active' : ''}`;
+        tab.textContent = layer.name;
+        tab.addEventListener('click', () => {
+          activeLayerIndex = idx;
+          loadActiveLayerToUI();
+          renderTabs();
+        });
+        layerTabs.appendChild(tab);
+      });
+    }
+
+    function loadActiveLayerToUI() {
+      const layer = layers[activeLayerIndex];
+      inputsText.value = layer.inputs;
+      shapeModeInput.value = layer.shapeMode;
+      layerRadiusInput.value = layer.radius;
+      starPointsInput.value = layer.starPoints;
+      ringCountInput.value = layer.ringCount;
+      extraCirclesInput.value = layer.extraCircles;
+
+      glyphAngleInput.value = layer.glyphAngle;
+      geoAngleInput.value = layer.geoAngle;
+      orbitAngleInput.value = layer.orbitAngle;
+
+      colorPrimaryInput.value = layer.colorPrimary;
+      colorSecondaryInput.value = layer.colorSecondary;
+
+      layerRadiusVal.textContent = layer.radius;
+      starPointsVal.textContent = layer.starPoints;
+      ringCountVal.textContent = layer.ringCount;
+      extraCirclesVal.textContent = layer.extraCircles;
+      glyphAngleVal.textContent = `${layer.glyphAngle}°`;
+      geoAngleVal.textContent = `${layer.geoAngle}°`;
+      orbitAngleVal.textContent = `${layer.orbitAngle}°`;
+
+      renderAll();
+    }
+
+    function bindInputEvents() {
+      const updateLayer = () => {
+        const layer = layers[activeLayerIndex];
+        layer.inputs = inputsText.value;
+        layer.shapeMode = shapeModeInput.value;
+        layer.radius = parseInt(layerRadiusInput.value);
+        layer.starPoints = parseInt(starPointsInput.value);
+        layer.ringCount = parseInt(ringCountInput.value);
+        layer.extraCircles = parseInt(extraCirclesInput.value);
+
+        layer.glyphAngle = parseInt(glyphAngleInput.value);
+        layer.geoAngle = parseInt(geoAngleInput.value);
+        layer.orbitAngle = parseInt(orbitAngleInput.value);
+
+        layer.colorPrimary = colorPrimaryInput.value;
+        layer.colorSecondary = colorSecondaryInput.value;
+
+        layerRadiusVal.textContent = layer.radius;
+        starPointsVal.textContent = layer.starPoints;
+        ringCountVal.textContent = layer.ringCount;
+        extraCirclesVal.textContent = layer.extraCircles;
+        glyphAngleVal.textContent = `${layer.glyphAngle}°`;
+        geoAngleVal.textContent = `${layer.geoAngle}°`;
+        orbitAngleVal.textContent = `${layer.orbitAngle}°`;
+
+        renderAll();
+      };
+
+      [inputsText, shapeModeInput, layerRadiusInput, ringCountInput, starPointsInput, 
+       extraCirclesInput, glyphAngleInput, geoAngleInput, orbitAngleInput, colorPrimaryInput, colorSecondaryInput]
+        .forEach(el => el.addEventListener('input', updateLayer));
+    }
+
+    addLayerBtn.addEventListener('click', () => {
+      const newIdx = layers.length + 1;
+      const newLayer = createDefaultLayer(`Layer ${newIdx}`, 250, "star", 5, "#10b981", "#065f46", 0, 0, 0, "Rune, ✨, Magic, ⚡, Spell");
+      layers.push(newLayer);
+      activeLayerIndex = layers.length - 1;
+      loadActiveLayerToUI();
+      renderTabs();
+    });
+
+    removeLayerBtn.addEventListener('click', () => {
+      if (layers.length <= 1) return;
+      layers.splice(activeLayerIndex, 1);
+      activeLayerIndex = Math.max(0, activeLayerIndex - 1);
+      loadActiveLayerToUI();
+      renderTabs();
+    });
+
+    function drawShape(targetCtx, radius, points, mode, color) {
+      targetCtx.beginPath();
+      targetCtx.strokeStyle = color;
+      targetCtx.lineWidth = 1.5;
+
+      if (mode === 'polygon' || mode === 'both') {
+        for (let i = 0; i <= points; i++) {
+          const a = (i * Math.PI * 2) / points;
+          const x = Math.cos(a) * radius;
+          const y = Math.sin(a) * radius;
+          if (i === 0) targetCtx.moveTo(x, y);
+          else targetCtx.lineTo(x, y);
+        }
+      }
+
+      if (mode === 'star' || mode === 'both') {
+        const skip = Math.max(1, Math.floor(points / 2));
+        for (let i = 0; i < points; i++) {
+          const a1 = (i * Math.PI * 2) / points;
+          const a2 = ((i + skip) * Math.PI * 2) / points;
+          
+          const x1 = Math.cos(a1) * radius;
+          const y1 = Math.sin(a1) * radius;
+          const x2 = Math.cos(a2) * radius;
+          const y2 = Math.sin(a2) * radius;
+
+          targetCtx.moveTo(x1, y1);
+          targetCtx.lineTo(x2, y2);
+        }
+      }
+      targetCtx.stroke();
+    }
+
+    function renderSingleLayer(targetCtx, layer) {
+      const maxRadius = layer.radius;
+      const items = layer.inputs.split(',').map(s => s.trim()).filter(s => s.length > 0);
+      const points = layer.starPoints;
+      const layersCount = layer.ringCount;
+      const extraCircles = layer.extraCircles;
+      const shapeMode = layer.shapeMode;
+      const primaryColor = layer.colorPrimary;
+      const secondaryColor = layer.colorSecondary;
+
+      targetCtx.save();
+      targetCtx.shadowBlur = 12;
+      targetCtx.shadowColor = primaryColor;
+      targetCtx.strokeStyle = primaryColor;
+      targetCtx.fillStyle = primaryColor;
+      targetCtx.lineWidth = 1.5;
+
+      // 1. Outer Ring
+      targetCtx.beginPath();
+      targetCtx.arc(0, 0, maxRadius, 0, Math.PI * 2);
+      targetCtx.arc(0, 0, maxRadius - 8, 0, Math.PI * 2);
+      targetCtx.stroke();
+
+      // 2. Solid Glyphs Ring
+      if (items.length > 0) {
+        targetCtx.save();
+        targetCtx.rotate((layer.glyphAngle * Math.PI) / 180);
+        
+        const textRadius = maxRadius - 22;
+        let textArray = [];
+        while (textArray.length < 10 && items.length > 0) {
+          textArray = textArray.concat(items);
+        }
+
+        const step = (Math.PI * 2) / textArray.length;
+        textArray.forEach((item, i) => {
+          targetCtx.save();
+          targetCtx.rotate(i * step);
+          targetCtx.translate(0, -textRadius);
+
+          if (emojiGlyphs[item]) {
+            renderSolidGlyph(targetCtx, emojiGlyphs[item], primaryColor, 18);
+          } else {
+            targetCtx.font = 'bold 16px sans-serif';
+            targetCtx.textAlign = 'center';
+            targetCtx.textBaseline = 'middle';
+            targetCtx.fillStyle = primaryColor;
+            targetCtx.fillText(item, 0, 0);
+          }
+
+          targetCtx.restore();
+        });
+        targetCtx.restore();
+      }
+
+      // 3. Geometry
+      const starRadius = maxRadius - 45;
+      if (starRadius > 10 && shapeMode !== 'none') {
+        targetCtx.save();
+        targetCtx.rotate((layer.geoAngle * Math.PI) / 180);
+        drawShape(targetCtx, starRadius, points, shapeMode, secondaryColor);
+        targetCtx.restore();
+      }
+
+      // 4. Orbit Circles
+      if (extraCircles > 0 && starRadius > 20) {
+        targetCtx.save();
+        targetCtx.rotate((layer.orbitAngle * Math.PI) / 180);
+        const orbitRadius = starRadius - 15;
+        const circleSize = 250 / extraCircles;
+
+        for (let i = 0; i < extraCircles; i++) {
+          const a = (i * Math.PI * 2) / extraCircles;
+          const cx = Math.cos(a) * orbitRadius;
+          const cy = Math.sin(a) * orbitRadius;
+
+          targetCtx.beginPath();
+          targetCtx.arc(cx, cy, Math.min(circleSize, 40), 0, Math.PI * 2);
+          targetCtx.strokeStyle = primaryColor;
+          targetCtx.stroke();
+        }
+        targetCtx.restore();
+      }
+
+      // 5. Sub-Rings
+      for (let l = 1; l <= layersCount; l++) {
+        const r = (starRadius / (layersCount + 1)) * l;
+        if (r <= 0) continue;
+        
+        targetCtx.save();
+        targetCtx.beginPath();
+        targetCtx.arc(0, 0, r, 0, Math.PI * 2);
+        targetCtx.strokeStyle = l % 2 === 0 ? primaryColor : secondaryColor;
+        targetCtx.stroke();
+        targetCtx.restore();
+      }
+
+      targetCtx.restore();
+    }
+
+    function renderAll() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+
+      ctx.save();
+      ctx.translate(centerX, centerY);
+
+      layers.forEach(layer => renderSingleLayer(ctx, layer));
+
+      ctx.beginPath();
+      ctx.arc(0, 0, 8, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    // Reliable PNG export (toDataURL + fallback toBlob)
+    saveBtn.addEventListener('click', () => {
+      try {
+        const exportCanvas = document.createElement('canvas');
+        exportCanvas.width = 1000;
+        exportCanvas.height = 1000;
+        const exportCtx = exportCanvas.getContext('2d');
+
+        // Solid background
+        exportCtx.fillStyle = '#080810';
+        exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+        // Draw all layers
+        exportCtx.save();
+        exportCtx.translate(500, 500);
+        layers.forEach(layer => renderSingleLayer(exportCtx, layer));
+
+        exportCtx.beginPath();
+        exportCtx.arc(0, 0, 8, 0, Math.PI * 2);
+        exportCtx.fillStyle = '#ffffff';
+        exportCtx.fill();
+        exportCtx.restore();
+
+        // Prefer toDataURL (most compatible across browsers)
+        const dataURL = exportCanvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = 'spell-circle.png';
+        link.href = dataURL;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (err) {
+        // Fallback to toBlob if toDataURL fails
+        console.warn('toDataURL failed, trying toBlob', err);
+        const exportCanvas = document.createElement('canvas');
+        exportCanvas.width = 1000;
+        exportCanvas.height = 1000;
+        const exportCtx = exportCanvas.getContext('2d');
+        exportCtx.fillStyle = '#080810';
+        exportCtx.fillRect(0, 0, 1000, 1000);
+        exportCtx.save();
+        exportCtx.translate(500, 500);
+        layers.forEach(layer => renderSingleLayer(exportCtx, layer));
+        exportCtx.beginPath();
+        exportCtx.arc(0, 0, 8, 0, Math.PI * 2);
+        exportCtx.fillStyle = '#ffffff';
+        exportCtx.fill();
+        exportCtx.restore();
+
+        exportCanvas.toBlob((blob) => {
+          if (!blob) {
+            alert('Could not create PNG. Please try a different browser.');
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.download = 'spell-circle.png';
+          link.href = url;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }, 'image/png');
+      }
+    });
+
+    randomizeBtn.addEventListener('click', () => {
+      const layer = layers[activeLayerIndex];
+      layer.glyphAngle = Math.floor(Math.random() * 360);
+      layer.geoAngle = Math.floor(Math.random() * 360);
+      layer.orbitAngle = Math.floor(Math.random() * 360);
+      layer.starPoints = Math.floor(Math.random() * 10) + 3;
+
+      loadActiveLayerToUI();
+    });
+
+    initSymbolGrid();
+    bindInputEvents();
+    renderTabs();
+    loadActiveLayerToUI();
+  </script>
+</body>
+</html>
